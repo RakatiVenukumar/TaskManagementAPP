@@ -1,5 +1,6 @@
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:task_manager_app/models/task.dart';
 
 class DatabaseHelper {
 	DatabaseHelper._internal();
@@ -40,5 +41,10 @@ class DatabaseHelper {
 				FOREIGN KEY (blockedBy) REFERENCES tasks (id)
 			)
 		''');
+	}
+
+	Future<int> insertTask(Task task) async {
+		final db = await database;
+		return db.insert('tasks', task.toMap());
 	}
 }
