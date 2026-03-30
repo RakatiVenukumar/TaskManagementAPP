@@ -1,9 +1,11 @@
+import 'package:task_manager_app/utils/task_status.dart';
+
 class Task {
 	final int? id;
 	final String title;
 	final String description;
 	final DateTime dueDate;
-	final String status;
+	final TaskStatus status;
 	final int? blockedBy;
 
 	const Task({
@@ -20,7 +22,7 @@ class Task {
 		String? title,
 		String? description,
 		DateTime? dueDate,
-		String? status,
+		TaskStatus? status,
 		int? blockedBy,
 	}) {
 		return Task(
@@ -40,7 +42,7 @@ class Task {
 			'title': title,
 			'description': description,
 			'dueDate': dueDate.toIso8601String(),
-			'status': status,
+			'status': status.toStorageValue(),
 			'blockedBy': blockedBy,
 		};
 	}
@@ -52,7 +54,7 @@ class Task {
 			title: map['title'] as String,
 			description: map['description'] as String,
 			dueDate: DateTime.parse(map['dueDate'] as String),
-			status: map['status'] as String,
+			status: taskStatusFromStorage(map['status'] as String),
 			blockedBy: map['blockedBy'] as int?,
 		);
 	}
