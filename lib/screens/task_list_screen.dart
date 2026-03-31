@@ -18,6 +18,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
 	final DatabaseHelper _databaseHelper = DatabaseHelper.instance;
 	final TextEditingController _searchController = TextEditingController();
 	List<Task> _tasks = [];
+	bool _isLoading = true;
 	String _searchQuery = '';
 	String _debouncedSearchQuery = '';
 	Timer? _searchDebounce;
@@ -29,11 +30,40 @@ class _TaskListScreenState extends State<TaskListScreen> {
 		_loadTasks();
 	}
 
+	void _showMessage(String message, {bool isError = false}) {
+		if (!mounted) {
+			return;
+		}
+
+		ScaffoldMessenger.of(context).showSnackBar(
+			SnackBar(
+				content: Text(message),
+				backgroundColor: isError ? Colors.red.shade700 : null,
+			),
+		);
+	}
+
 	Future<void> _loadTasks() async {
-		final tasks = await _databaseHelper.getTasks();
-		setState(() {
-			_tasks = tasks;
-		});
+		try {
+			final tasks = await _databaseHelper.getTasks();
+			if (!mounted) {
+				return;
+			}
+
+			setState(() {
+				_tasks = tasks;
+				_isLoading = false;
+			});
+		} catch (_) {
+			if (!mounted) {
+				return;
+			}
+
+			setState(() {
+				_isLoading = false;
+			});
+			_showMessage('Failed to load tasks. Please try again.', isError: true);
+		}
 	}
 
 	void _onSearchChanged(String value) {
@@ -85,8 +115,44 @@ class _TaskListScreenState extends State<TaskListScreen> {
 			return;
 		}
 
-		await _databaseHelper.deleteTask(task.id!);
-		await _loadTasks();
+		try {
+			await _databaseHelper.deleteTask(task.id!);
+			await _loadTasks();
+			_showMessage('Task deleted');
+		} catch (_) {
+			_showMessage('Could not delete task.', isError: true);
+		}
+	}
+
+	Widget _buildEmptyState({required bool hasFilters}) {
+		return Center(
+			child: Padding(
+				padding: const EdgeInsets.all(24),
+				child: Column(
+					mainAxisSize: MainAxisSize.min,
+					children: [
+						Icon(
+							hasFilters ? Icons.filter_alt_off_outlined : Icons.task_alt,
+							size: 56,
+							color: Colors.grey.shade500,
+						),
+						const SizedBox(height: 12),
+						Text(
+							hasFilters ? 'No tasks found' : 'No tasks yet',
+							style: Theme.of(context).textTheme.titleMedium,
+						),
+						const SizedBox(height: 6),
+						Text(
+							hasFilters
+								? 'Try a different search text or status filter.'
+								: 'Tap the + button to create your first task.',
+							textAlign: TextAlign.center,
+							style: Theme.of(context).textTheme.bodyMedium,
+						),
+					],
+				),
+			),
+		);
 	}
 
 	@override
@@ -100,6 +166,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
 
 			return matchesSearch && matchesStatus;
 		}).toList();
+		final hasFilters = _tasks.isNotEmpty && visibleTasks.isEmpty;
 
 		final taskById = {
 			for (final item in _tasks)
@@ -113,7 +180,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
 			body: Column(
 				children: [
 					Padding(
-						padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+						padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
 						child: Row(
 							children: [
 								Expanded(
@@ -125,6 +192,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
 											hintText: 'Search by title',
 											prefixIcon: Icon(Icons.search),
 											border: OutlineInputBorder(),
+											isDense: true,
 										),
 									),
 								),
@@ -136,6 +204,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
 										decoration: const InputDecoration(
 											labelText: 'Status',
 											border: OutlineInputBorder(),
+											isDense: true,
 										),
 										items: [
 											const DropdownMenuItem<TaskStatus?>(
@@ -160,12 +229,10 @@ class _TaskListScreenState extends State<TaskListScreen> {
 						),
 					),
 					Expanded(
-						child: visibleTasks.isEmpty
-							? Center(
-								child: Text(
-									_tasks.isEmpty ? 'No tasks yet' : 'No tasks found',
-								),
-							)
+						child: _isLoading
+							? const Center(child: CircularProgressIndicator())
+							: visibleTasks.isEmpty
+							? _buildEmptyState(hasFilters: hasFilters)
 							: ListView.builder(
 								padding: const EdgeInsets.all(16),
 								itemCount: visibleTasks.length,
@@ -184,7 +251,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
 										onTap: isBlocked
 											? null
 											: () async {
-											final updated = await Navigator.push<bool>(
+											final result = await Navigator.push<String>(
 												context,
 												MaterialPageRoute(
 													builder: (_) => TaskFormScreen(
@@ -194,8 +261,9 @@ class _TaskListScreenState extends State<TaskListScreen> {
 												),
 											);
 
-											if (updated == true) {
+											if (result != null) {
 												await _loadTasks();
+												_showMessage('Task updated');
 											}
 											},
 										onDelete: isBlocked ? null : () => _confirmAndDeleteTask(task),
@@ -207,15 +275,16 @@ class _TaskListScreenState extends State<TaskListScreen> {
 			),
 			floatingActionButton: FloatingActionButton(
 				onPressed: () async {
-					final created = await Navigator.push<bool>(
+				final result = await Navigator.push<String>(
 						context,
 						MaterialPageRoute(
 							builder: (_) => TaskFormScreen(availableTasks: _tasks),
 						),
 					);
 
-					if (created == true) {
+				if (result != null) {
 						await _loadTasks();
+					_showMessage('Task created');
 					}
 				},
 				child: const Icon(Icons.add),

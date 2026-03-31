@@ -117,34 +117,57 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
 			_isSaving = true;
 		});
 
-		await Future.delayed(const Duration(seconds: 2));
+		try {
+			await Future.delayed(const Duration(seconds: 2));
 
-		if (_isEditMode) {
-			final updatedTask = widget.existingTask!.copyWith(
-				title: _titleController.text.trim(),
-				description: _descriptionController.text.trim(),
-				dueDate: _selectedDueDate!,
-				status: _selectedStatus,
-				blockedBy: _selectedBlockedById,
+			if (_isEditMode) {
+				final updatedTask = widget.existingTask!.copyWith(
+					title: _titleController.text.trim(),
+					description: _descriptionController.text.trim(),
+					dueDate: _selectedDueDate!,
+					status: _selectedStatus,
+					blockedBy: _selectedBlockedById,
+				);
+				await DatabaseHelper.instance.updateTask(updatedTask);
+			} else {
+				final task = Task(
+					title: _titleController.text.trim(),
+					description: _descriptionController.text.trim(),
+					dueDate: _selectedDueDate!,
+					status: _selectedStatus,
+					blockedBy: _selectedBlockedById,
+				);
+				await DatabaseHelper.instance.insertTask(task);
+				await _clearDraft();
+			}
+
+			if (!mounted) {
+				return;
+			}
+
+			Navigator.pop(context, _isEditMode ? 'updated' : 'created');
+		} catch (_) {
+			if (!mounted) {
+				return;
+			}
+
+			ScaffoldMessenger.of(context).showSnackBar(
+				SnackBar(
+					content: Text(
+						_isEditMode
+							? 'Could not update task. Please try again.'
+							: 'Could not create task. Please try again.',
+					),
+					backgroundColor: Colors.red.shade700,
+				),
 			);
-			await DatabaseHelper.instance.updateTask(updatedTask);
-		} else {
-			final task = Task(
-				title: _titleController.text.trim(),
-				description: _descriptionController.text.trim(),
-				dueDate: _selectedDueDate!,
-				status: _selectedStatus,
-				blockedBy: _selectedBlockedById,
-			);
-			await DatabaseHelper.instance.insertTask(task);
-			await _clearDraft();
+		} finally {
+			if (mounted) {
+				setState(() {
+					_isSaving = false;
+				});
+			}
 		}
-
-		if (!mounted) {
-			return;
-		}
-
-		Navigator.pop(context, true);
 	}
 
 	@override
@@ -256,6 +279,7 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
 							decoration: const InputDecoration(
 								labelText: 'Blocked By (Optional)',
 								border: OutlineInputBorder(),
+								isDense: true,
 							),
 							items: [
 								const DropdownMenuItem<int?>(
