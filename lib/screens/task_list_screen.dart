@@ -1,7 +1,32 @@
 import 'package:flutter/material.dart';
+import 'package:task_manager_app/database/database_helper.dart';
+import 'package:task_manager_app/models/task.dart';
+import 'package:task_manager_app/screens/task_form_screen.dart';
+import 'package:task_manager_app/widgets/task_card.dart';
 
-class TaskListScreen extends StatelessWidget {
+class TaskListScreen extends StatefulWidget {
 	const TaskListScreen({super.key});
+
+	@override
+	State<TaskListScreen> createState() => _TaskListScreenState();
+}
+
+class _TaskListScreenState extends State<TaskListScreen> {
+	final DatabaseHelper _databaseHelper = DatabaseHelper.instance;
+	List<Task> _tasks = [];
+
+	@override
+	void initState() {
+		super.initState();
+		_loadTasks();
+	}
+
+	Future<void> _loadTasks() async {
+		final tasks = await _databaseHelper.getTasks();
+		setState(() {
+			_tasks = tasks;
+		});
+	}
 
 	@override
 	Widget build(BuildContext context) {
@@ -9,13 +34,23 @@ class TaskListScreen extends StatelessWidget {
 			appBar: AppBar(
 				title: const Text('Task Manager'),
 			),
-			body: ListView(
-				padding: const EdgeInsets.all(16),
-				children: const [],
-			),
+			body: _tasks.isEmpty
+				? const Center(child: Text('No tasks yet'))
+				: ListView.builder(
+					padding: const EdgeInsets.all(16),
+					itemCount: _tasks.length,
+					itemBuilder: (context, index) {
+						return TaskCard(task: _tasks[index]);
+					},
+				),
 			floatingActionButton: FloatingActionButton(
 				onPressed: () {
-					// Navigation to task form will be added in Step 16.
+					Navigator.push(
+						context,
+						MaterialPageRoute(
+							builder: (_) => const TaskFormScreen(),
+						),
+					);
 				},
 				child: const Icon(Icons.add),
 			),
