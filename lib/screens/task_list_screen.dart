@@ -40,7 +40,22 @@ class _TaskListScreenState extends State<TaskListScreen> {
 					padding: const EdgeInsets.all(16),
 					itemCount: _tasks.length,
 					itemBuilder: (context, index) {
-						return TaskCard(task: _tasks[index]);
+						final task = _tasks[index];
+						return TaskCard(
+							task: task,
+							onTap: () async {
+								final updated = await Navigator.push<bool>(
+									context,
+									MaterialPageRoute(
+										builder: (_) => TaskFormScreen(existingTask: task),
+									),
+								);
+
+								if (updated == true) {
+									await _loadTasks();
+								}
+							},
+						);
 					},
 				),
 			floatingActionButton: FloatingActionButton(

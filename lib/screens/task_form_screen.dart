@@ -5,7 +5,9 @@ import 'package:task_manager_app/models/task.dart';
 import 'package:task_manager_app/utils/task_status.dart';
 
 class TaskFormScreen extends StatefulWidget {
-	const TaskFormScreen({super.key});
+	const TaskFormScreen({super.key, this.existingTask});
+
+	final Task? existingTask;
 
 	@override
 	State<TaskFormScreen> createState() => _TaskFormScreenState();
@@ -18,6 +20,19 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
 	DateTime? _selectedDueDate;
 	TaskStatus _selectedStatus = TaskStatus.todo;
 	String? _dueDateError;
+
+	bool get _isEditMode => widget.existingTask != null;
+
+	@override
+	void initState() {
+		super.initState();
+		if (widget.existingTask != null) {
+			_titleController.text = widget.existingTask!.title;
+			_descriptionController.text = widget.existingTask!.description;
+			_selectedDueDate = widget.existingTask!.dueDate;
+			_selectedStatus = widget.existingTask!.status;
+		}
+	}
 
 	Future<void> _pickDueDate() async {
 		final now = DateTime.now();
@@ -46,15 +61,24 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
 			return;
 		}
 
-		final task = Task(
-			title: _titleController.text.trim(),
-			description: _descriptionController.text.trim(),
-			dueDate: _selectedDueDate!,
-			status: _selectedStatus,
-			blockedBy: null,
-		);
-
-		await DatabaseHelper.instance.insertTask(task);
+		if (_isEditMode) {
+			final updatedTask = widget.existingTask!.copyWith(
+				title: _titleController.text.trim(),
+				description: _descriptionController.text.trim(),
+				dueDate: _selectedDueDate!,
+				status: _selectedStatus,
+			);
+			await DatabaseHelper.instance.updateTask(updatedTask);
+		} else {
+			final task = Task(
+				title: _titleController.text.trim(),
+				description: _descriptionController.text.trim(),
+				dueDate: _selectedDueDate!,
+				status: _selectedStatus,
+				blockedBy: null,
+			);
+			await DatabaseHelper.instance.insertTask(task);
+		}
 
 		if (!mounted) {
 			return;
@@ -78,7 +102,7 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
 
 		return Scaffold(
 			appBar: AppBar(
-				title: const Text('Create Task'),
+				title: Text(_isEditMode ? 'Edit Task' : 'Create Task'),
 			),
 			body: Form(
 				key: _formKey,
@@ -157,7 +181,7 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
 							height: 48,
 							child: ElevatedButton(
 								onPressed: _onSave,
-								child: const Text('Save'),
+								child: Text(_isEditMode ? 'Update' : 'Save'),
 							),
 						),
 					],
