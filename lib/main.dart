@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:task_manager_app/screens/task_list_screen.dart';
 
 void main() {
   runApp(const TaskManagerApp());
@@ -15,25 +16,6 @@ class TaskManagerApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
       ),
       home: const TaskListScreen(),
-    );
-  }
-}
-
-class TaskListScreen extends StatelessWidget {
-  const TaskListScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Task Manager'),
-      ),
-      body: Center(
-        child: Text(
-          'No tasks yet',
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
-      ),
     );
   }
 }
