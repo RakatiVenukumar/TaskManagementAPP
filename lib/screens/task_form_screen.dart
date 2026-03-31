@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:task_manager_app/database/database_helper.dart';
 import 'package:task_manager_app/models/task.dart';
 import 'package:task_manager_app/utils/task_status.dart';
@@ -19,6 +20,9 @@ class TaskFormScreen extends StatefulWidget {
 }
 
 class _TaskFormScreenState extends State<TaskFormScreen> {
+	static const String _draftTitleKey = 'task_form_draft_title';
+	static const String _draftDescriptionKey = 'task_form_draft_description';
+
 	final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 	final TextEditingController _titleController = TextEditingController();
 	final TextEditingController _descriptionController = TextEditingController();
@@ -26,19 +30,56 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
 	TaskStatus _selectedStatus = TaskStatus.todo;
 	int? _selectedBlockedById;
 	String? _dueDateError;
+	bool _isSaving = false;
 
 	bool get _isEditMode => widget.existingTask != null;
 
 	@override
 	void initState() {
 		super.initState();
+		_titleController.addListener(_saveDraft);
+		_descriptionController.addListener(_saveDraft);
+
 		if (widget.existingTask != null) {
 			_titleController.text = widget.existingTask!.title;
 			_descriptionController.text = widget.existingTask!.description;
 			_selectedDueDate = widget.existingTask!.dueDate;
 			_selectedStatus = widget.existingTask!.status;
 			_selectedBlockedById = widget.existingTask!.blockedBy;
+		} else {
+			_loadDraft();
 		}
+	}
+
+	Future<void> _loadDraft() async {
+		final prefs = await SharedPreferences.getInstance();
+		final draftTitle = prefs.getString(_draftTitleKey) ?? '';
+		final draftDescription = prefs.getString(_draftDescriptionKey) ?? '';
+
+		if (!mounted) {
+			return;
+		}
+
+		setState(() {
+			_titleController.text = draftTitle;
+			_descriptionController.text = draftDescription;
+		});
+	}
+
+	Future<void> _saveDraft() async {
+		if (_isEditMode) {
+			return;
+		}
+
+		final prefs = await SharedPreferences.getInstance();
+		await prefs.setString(_draftTitleKey, _titleController.text);
+		await prefs.setString(_draftDescriptionKey, _descriptionController.text);
+	}
+
+	Future<void> _clearDraft() async {
+		final prefs = await SharedPreferences.getInstance();
+		await prefs.remove(_draftTitleKey);
+		await prefs.remove(_draftDescriptionKey);
 	}
 
 	Future<void> _pickDueDate() async {
@@ -59,6 +100,10 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
 	}
 
 	Future<void> _onSave() async {
+		if (_isSaving) {
+			return;
+		}
+
 		final isFormValid = _formKey.currentState?.validate() ?? false;
 		setState(() {
 			_dueDateError = _selectedDueDate == null ? 'Due date is required' : null;
@@ -67,6 +112,12 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
 		if (!isFormValid || _selectedDueDate == null) {
 			return;
 		}
+
+		setState(() {
+			_isSaving = true;
+		});
+
+		await Future.delayed(const Duration(seconds: 2));
 
 		if (_isEditMode) {
 			final updatedTask = widget.existingTask!.copyWith(
@@ -86,6 +137,7 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
 				blockedBy: _selectedBlockedById,
 			);
 			await DatabaseHelper.instance.insertTask(task);
+			await _clearDraft();
 		}
 
 		if (!mounted) {
@@ -97,6 +149,8 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
 
 	@override
 	void dispose() {
+		_titleController.removeListener(_saveDraft);
+		_descriptionController.removeListener(_saveDraft);
 		_titleController.dispose();
 		_descriptionController.dispose();
 		super.dispose();
@@ -153,7 +207,7 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
 							title: const Text('Due Date'),
 							subtitle: Text(dueDateText),
 							trailing: const Icon(Icons.calendar_today_outlined),
-							onTap: _pickDueDate,
+							onTap: _isSaving ? null : _pickDueDate,
 							shape: RoundedRectangleBorder(
 								borderRadius: BorderRadius.circular(6),
 								side: BorderSide(
@@ -185,6 +239,10 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
 								);
 							}).toList(),
 							onChanged: (value) {
+								if (_isSaving) {
+									return;
+								}
+
 								if (value != null) {
 									setState(() {
 										_selectedStatus = value;
@@ -212,6 +270,10 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
 								}),
 							],
 							onChanged: (value) {
+								if (_isSaving) {
+									return;
+								}
+
 								setState(() {
 									_selectedBlockedById = value;
 								});
@@ -221,8 +283,14 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
 						SizedBox(
 							height: 48,
 							child: ElevatedButton(
-								onPressed: _onSave,
-								child: Text(_isEditMode ? 'Update' : 'Save'),
+								onPressed: _isSaving ? null : _onSave,
+								child: _isSaving
+									? const SizedBox(
+										height: 20,
+										width: 20,
+										child: CircularProgressIndicator(strokeWidth: 2.2),
+									)
+									: Text(_isEditMode ? 'Update' : 'Save'),
 							),
 						),
 					],
