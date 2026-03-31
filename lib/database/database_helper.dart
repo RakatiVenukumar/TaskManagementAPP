@@ -54,4 +54,15 @@ class DatabaseHelper {
 
 		return maps.map((map) => Task.fromMap(map)).toList();
 	}
+
+	Future<int> updateTask(Task task) async {
+		final db = await database;
+
+		return db.update(
+			'tasks',
+			task.toMap(),
+			where: 'id = ?',
+			whereArgs: [task.id],
+		);
+	}
 }
