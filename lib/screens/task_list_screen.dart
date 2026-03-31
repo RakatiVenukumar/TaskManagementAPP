@@ -181,59 +181,75 @@ class _TaskListScreenState extends State<TaskListScreen> {
 				children: [
 					Padding(
 						padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-						child: Row(
-							children: [
-								Expanded(
-									flex: 3,
-									child: TextField(
-										controller: _searchController,
-										onChanged: _onSearchChanged,
-										decoration: const InputDecoration(
-											hintText: 'Search by title',
-											prefixIcon: Icon(Icons.search),
-											border: OutlineInputBorder(),
-											isDense: true,
-										),
+						child: Container(
+							padding: const EdgeInsets.all(12),
+							decoration: BoxDecoration(
+								color: Colors.white,
+								borderRadius: BorderRadius.circular(14),
+								boxShadow: const [
+									BoxShadow(
+										color: Color(0x14000000),
+										blurRadius: 12,
+										offset: Offset(0, 4),
 									),
-								),
-								const SizedBox(width: 10),
-								Expanded(
-									flex: 2,
-									child: DropdownButtonFormField<TaskStatus?>(
-										initialValue: _selectedStatusFilter,
-										decoration: const InputDecoration(
-											labelText: 'Status',
-											border: OutlineInputBorder(),
-											isDense: true,
-										),
-										items: [
-											const DropdownMenuItem<TaskStatus?>(
-												value: null,
-												child: Text('All'),
+								],
+							),
+							child: Row(
+								children: [
+									Expanded(
+										flex: 3,
+										child: TextField(
+											controller: _searchController,
+											onChanged: _onSearchChanged,
+											decoration: const InputDecoration(
+												hintText: 'Search by title',
+												prefixIcon: Icon(Icons.search),
 											),
-											...TaskStatus.values.map((status) {
-												return DropdownMenuItem<TaskStatus?>(
-													value: status,
-													child: Text(status.toDisplayLabel()),
-												);
-											}),
-										],
-										onChanged: (value) {
-											setState(() {
-												_selectedStatusFilter = value;
-											});
-										},
+										),
 									),
-								),
-							],
+									const SizedBox(width: 10),
+									Expanded(
+										flex: 2,
+										child: DropdownButtonFormField<TaskStatus?>(
+											initialValue: _selectedStatusFilter,
+											decoration: const InputDecoration(
+												labelText: 'Status',
+											),
+											items: [
+												const DropdownMenuItem<TaskStatus?>(
+													value: null,
+													child: Text('All'),
+												),
+												...TaskStatus.values.map((status) {
+													return DropdownMenuItem<TaskStatus?>(
+														value: status,
+														child: Text(status.toDisplayLabel()),
+													);
+												}),
+											],
+											onChanged: (value) {
+												setState(() {
+													_selectedStatusFilter = value;
+												});
+											},
+										),
+									),
+								],
+							),
 						),
 					),
 					Expanded(
-						child: _isLoading
-							? const Center(child: CircularProgressIndicator())
-							: visibleTasks.isEmpty
-							? _buildEmptyState(hasFilters: hasFilters)
-							: ListView.builder(
+						child: AnimatedSwitcher(
+							duration: const Duration(milliseconds: 240),
+							child: _isLoading
+								? const Center(
+										key: ValueKey('loading'),
+										child: CircularProgressIndicator(),
+								)
+								: visibleTasks.isEmpty
+								? _buildEmptyState(hasFilters: hasFilters)
+								: ListView.builder(
+										key: const ValueKey('task-list'),
 								padding: const EdgeInsets.all(16),
 								itemCount: visibleTasks.length,
 								itemBuilder: (context, index) {
@@ -248,9 +264,8 @@ class _TaskListScreenState extends State<TaskListScreen> {
 										task: task,
 										searchQuery: _debouncedSearchQuery,
 										isBlocked: isBlocked,
-										onTap: isBlocked
-											? null
-											: () async {
+										animationDelay: Duration(milliseconds: 28 * index),
+										onTap: () async {
 											final result = await Navigator.push<String>(
 												context,
 												MaterialPageRoute(
@@ -266,10 +281,11 @@ class _TaskListScreenState extends State<TaskListScreen> {
 												_showMessage('Task updated');
 											}
 											},
-										onDelete: isBlocked ? null : () => _confirmAndDeleteTask(task),
+										onDelete: () => _confirmAndDeleteTask(task),
 									);
 								},
 							),
+						),
 					),
 				],
 			),

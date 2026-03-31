@@ -8,6 +8,7 @@ class TaskCard extends StatelessWidget {
 		super.key,
 		required this.task,
 		required this.searchQuery,
+		required this.animationDelay,
 		this.onTap,
 		this.onDelete,
 		this.isBlocked = false,
@@ -15,6 +16,7 @@ class TaskCard extends StatelessWidget {
 
 	final Task task;
 	final String searchQuery;
+	final Duration animationDelay;
 	final VoidCallback? onTap;
 	final VoidCallback? onDelete;
 	final bool isBlocked;
@@ -69,10 +71,34 @@ class TaskCard extends StatelessWidget {
 
 		return Opacity(
 			opacity: isBlocked ? 0.5 : 1,
-			child: Card(
-				margin: const EdgeInsets.only(bottom: 14),
-				color: isBlocked ? Colors.grey.shade200 : null,
-				child: InkWell(
+			child: TweenAnimationBuilder<double>(
+				tween: Tween<double>(begin: 0.0, end: 1.0),
+				duration: const Duration(milliseconds: 320),
+				curve: Curves.easeOutCubic,
+				builder: (context, value, child) {
+					return Transform.translate(
+						offset: Offset(0, 18 * (1 - value)),
+						child: Opacity(opacity: value, child: child),
+					);
+				},
+				child: AnimatedContainer(
+					duration: animationDelay + const Duration(milliseconds: 150),
+					curve: Curves.easeOut,
+					margin: const EdgeInsets.only(bottom: 14),
+					decoration: BoxDecoration(
+						color: isBlocked ? const Color(0xFFF1F3F2) : Colors.white,
+						borderRadius: BorderRadius.circular(14),
+						boxShadow: const [
+							BoxShadow(
+								color: Color(0x12000000),
+								blurRadius: 12,
+								offset: Offset(0, 4),
+							),
+						],
+					),
+					child: Material(
+						color: Colors.transparent,
+						child: InkWell(
 					onTap: onTap,
 					borderRadius: BorderRadius.circular(12),
 					child: Padding(
@@ -94,6 +120,17 @@ class TaskCard extends StatelessWidget {
 										),
 									],
 								),
+								if (task.description.trim().isNotEmpty) ...[
+									const SizedBox(height: 6),
+									Text(
+										task.description.trim(),
+										maxLines: 2,
+										overflow: TextOverflow.ellipsis,
+										style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+											color: Colors.black87,
+										),
+									),
+								],
 								const SizedBox(height: 8),
 								Wrap(
 									spacing: 8,
@@ -127,15 +164,15 @@ class TaskCard extends StatelessWidget {
 													vertical: 5,
 												),
 												decoration: BoxDecoration(
-													color: Colors.grey.shade300,
+													color: const Color(0xFFDADFDB),
 													borderRadius: BorderRadius.circular(999),
 												),
 												child: const Row(
 													mainAxisSize: MainAxisSize.min,
 													children: [
-														Icon(Icons.lock_outline, size: 14),
+														Icon(Icons.lock_outline, size: 14, color: Color(0xFF46504A)),
 														SizedBox(width: 6),
-														Text('Blocked'),
+														Text('Blocked', style: TextStyle(color: Color(0xFF46504A))),
 													],
 												),
 											),
@@ -149,7 +186,7 @@ class TaskCard extends StatelessWidget {
 										Text(dueDateText),
 									],
 								),
-							],
+									],
 						),
 					),
 				),

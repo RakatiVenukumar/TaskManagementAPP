@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -118,18 +120,23 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
 		});
 
 		try {
-			await Future.delayed(const Duration(seconds: 2));
+			Future<void> saveOperation() async {
+				if (_isEditMode) {
+					await Future<void>.delayed(const Duration(seconds: 2));
 
-			if (_isEditMode) {
-				final updatedTask = widget.existingTask!.copyWith(
-					title: _titleController.text.trim(),
-					description: _descriptionController.text.trim(),
-					dueDate: _selectedDueDate!,
-					status: _selectedStatus,
-					blockedBy: _selectedBlockedById,
-				);
-				await DatabaseHelper.instance.updateTask(updatedTask);
-			} else {
+					final updatedTask = widget.existingTask!.copyWith(
+						title: _titleController.text.trim(),
+						description: _descriptionController.text.trim(),
+						dueDate: _selectedDueDate!,
+						status: _selectedStatus,
+						blockedBy: _selectedBlockedById,
+					);
+					await DatabaseHelper.instance.updateTask(updatedTask);
+					return;
+				}
+
+				await Future<void>.delayed(const Duration(seconds: 2));
+
 				final task = Task(
 					title: _titleController.text.trim(),
 					description: _descriptionController.text.trim(),
@@ -141,12 +148,33 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
 				await _clearDraft();
 			}
 
+			await saveOperation().timeout(const Duration(seconds: 15));
+
 			if (!mounted) {
 				return;
 			}
 
 			Navigator.pop(context, _isEditMode ? 'updated' : 'created');
-		} catch (_) {
+		} on TimeoutException catch (error, stackTrace) {
+			debugPrint('Task save timed out: $error');
+			debugPrintStack(stackTrace: stackTrace);
+
+			if (!mounted) {
+				return;
+			}
+
+			ScaffoldMessenger.of(context).showSnackBar(
+				SnackBar(
+					content: const Text(
+						'Saving task is taking too long. Please try again.',
+					),
+					backgroundColor: Colors.red.shade700,
+				),
+			);
+		} catch (error, stackTrace) {
+			debugPrint('Task save failed: $error');
+			debugPrintStack(stackTrace: stackTrace);
+
 			if (!mounted) {
 				return;
 			}
