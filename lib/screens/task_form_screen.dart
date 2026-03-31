@@ -5,9 +5,14 @@ import 'package:task_manager_app/models/task.dart';
 import 'package:task_manager_app/utils/task_status.dart';
 
 class TaskFormScreen extends StatefulWidget {
-	const TaskFormScreen({super.key, this.existingTask});
+	const TaskFormScreen({
+		super.key,
+		this.existingTask,
+		required this.availableTasks,
+	});
 
 	final Task? existingTask;
+	final List<Task> availableTasks;
 
 	@override
 	State<TaskFormScreen> createState() => _TaskFormScreenState();
@@ -19,6 +24,7 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
 	final TextEditingController _descriptionController = TextEditingController();
 	DateTime? _selectedDueDate;
 	TaskStatus _selectedStatus = TaskStatus.todo;
+	int? _selectedBlockedById;
 	String? _dueDateError;
 
 	bool get _isEditMode => widget.existingTask != null;
@@ -31,6 +37,7 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
 			_descriptionController.text = widget.existingTask!.description;
 			_selectedDueDate = widget.existingTask!.dueDate;
 			_selectedStatus = widget.existingTask!.status;
+			_selectedBlockedById = widget.existingTask!.blockedBy;
 		}
 	}
 
@@ -67,6 +74,7 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
 				description: _descriptionController.text.trim(),
 				dueDate: _selectedDueDate!,
 				status: _selectedStatus,
+				blockedBy: _selectedBlockedById,
 			);
 			await DatabaseHelper.instance.updateTask(updatedTask);
 		} else {
@@ -75,7 +83,7 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
 				description: _descriptionController.text.trim(),
 				dueDate: _selectedDueDate!,
 				status: _selectedStatus,
-				blockedBy: null,
+				blockedBy: _selectedBlockedById,
 			);
 			await DatabaseHelper.instance.insertTask(task);
 		}
@@ -96,6 +104,14 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
 
 	@override
 	Widget build(BuildContext context) {
+		final blockedByOptions = widget.availableTasks.where((task) {
+			if (!_isEditMode) {
+				return true;
+			}
+
+			return task.id != widget.existingTask!.id;
+		}).toList();
+
 		final dueDateText = _selectedDueDate == null
 			? 'Select due date'
 			: DateFormat('dd MMM yyyy').format(_selectedDueDate!);
@@ -174,6 +190,31 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
 										_selectedStatus = value;
 									});
 								}
+							},
+						),
+						const SizedBox(height: 12),
+						DropdownButtonFormField<int?>(
+							initialValue: _selectedBlockedById,
+							decoration: const InputDecoration(
+								labelText: 'Blocked By (Optional)',
+								border: OutlineInputBorder(),
+							),
+							items: [
+								const DropdownMenuItem<int?>(
+									value: null,
+									child: Text('None'),
+								),
+								...blockedByOptions.map((task) {
+									return DropdownMenuItem<int?>(
+										value: task.id,
+										child: Text(task.title),
+									);
+								}),
+							],
+							onChanged: (value) {
+								setState(() {
+									_selectedBlockedById = value;
+								});
 							},
 						),
 						const SizedBox(height: 20),

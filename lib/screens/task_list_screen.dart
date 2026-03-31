@@ -76,7 +76,10 @@ class _TaskListScreenState extends State<TaskListScreen> {
 								final updated = await Navigator.push<bool>(
 									context,
 									MaterialPageRoute(
-										builder: (_) => TaskFormScreen(existingTask: task),
+										builder: (_) => TaskFormScreen(
+											existingTask: task,
+											availableTasks: _tasks,
+										),
 									),
 								);
 
@@ -93,7 +96,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
 					final created = await Navigator.push<bool>(
 						context,
 						MaterialPageRoute(
-							builder: (_) => const TaskFormScreen(),
+							builder: (_) => TaskFormScreen(availableTasks: _tasks),
 						),
 					);
 
