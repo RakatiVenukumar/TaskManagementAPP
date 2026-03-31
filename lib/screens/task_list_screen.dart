@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:task_manager_app/database/database_helper.dart';
 import 'package:task_manager_app/models/task.dart';
 import 'package:task_manager_app/screens/task_form_screen.dart';
+import 'package:task_manager_app/utils/task_status.dart';
 import 'package:task_manager_app/widgets/task_card.dart';
 
 class TaskListScreen extends StatefulWidget {
@@ -59,6 +60,11 @@ class _TaskListScreenState extends State<TaskListScreen> {
 
 	@override
 	Widget build(BuildContext context) {
+		final taskById = {
+			for (final item in _tasks)
+				if (item.id != null) item.id!: item,
+		};
+
 		return Scaffold(
 			appBar: AppBar(
 				title: const Text('Task Manager'),
@@ -70,9 +76,18 @@ class _TaskListScreenState extends State<TaskListScreen> {
 					itemCount: _tasks.length,
 					itemBuilder: (context, index) {
 						final task = _tasks[index];
+						final blockedByTask = task.blockedBy == null
+							? null
+							: taskById[task.blockedBy];
+						final isBlocked = blockedByTask != null &&
+							blockedByTask.status != TaskStatus.done;
+
 						return TaskCard(
 							task: task,
-							onTap: () async {
+							isBlocked: isBlocked,
+							onTap: isBlocked
+								? null
+								: () async {
 								final updated = await Navigator.push<bool>(
 									context,
 									MaterialPageRoute(
@@ -86,8 +101,8 @@ class _TaskListScreenState extends State<TaskListScreen> {
 								if (updated == true) {
 									await _loadTasks();
 								}
-							},
-							onDelete: () => _confirmAndDeleteTask(task),
+								},
+							onDelete: isBlocked ? null : () => _confirmAndDeleteTask(task),
 						);
 					},
 				),

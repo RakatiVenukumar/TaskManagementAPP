@@ -4,20 +4,30 @@ import 'package:task_manager_app/models/task.dart';
 import 'package:task_manager_app/utils/task_status.dart';
 
 class TaskCard extends StatelessWidget {
-	const TaskCard({super.key, required this.task, this.onTap, this.onDelete});
+	const TaskCard({
+		super.key,
+		required this.task,
+		this.onTap,
+		this.onDelete,
+		this.isBlocked = false,
+	});
 
 	final Task task;
 	final VoidCallback? onTap;
 	final VoidCallback? onDelete;
+	final bool isBlocked;
 
 	@override
 	Widget build(BuildContext context) {
 		final dueDateText = DateFormat('dd MMM yyyy').format(task.dueDate);
 
-		return Card(
-			margin: const EdgeInsets.only(bottom: 12),
-			child: InkWell(
-				onTap: onTap,
+		return Opacity(
+			opacity: isBlocked ? 0.5 : 1,
+			child: Card(
+				margin: const EdgeInsets.only(bottom: 12),
+				color: isBlocked ? Colors.grey.shade200 : null,
+				child: InkWell(
+					onTap: onTap,
 				borderRadius: BorderRadius.circular(12),
 				child: Padding(
 					padding: const EdgeInsets.all(14),
@@ -57,6 +67,7 @@ class TaskCard extends StatelessWidget {
 							),
 						],
 					),
+				),
 				),
 			),
 		);
