@@ -65,4 +65,14 @@ class DatabaseHelper {
 			whereArgs: [task.id],
 		);
 	}
+
+	Future<int> deleteTask(int id) async {
+		final db = await database;
+
+		return db.delete(
+			'tasks',
+			where: 'id = ?',
+			whereArgs: [id],
+		);
+	}
 }
