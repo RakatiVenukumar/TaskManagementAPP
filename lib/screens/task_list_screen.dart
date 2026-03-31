@@ -15,6 +15,7 @@ class TaskListScreen extends StatefulWidget {
 class _TaskListScreenState extends State<TaskListScreen> {
 	final DatabaseHelper _databaseHelper = DatabaseHelper.instance;
 	List<Task> _tasks = [];
+	String _searchQuery = '';
 
 	@override
 	void initState() {
@@ -60,6 +61,14 @@ class _TaskListScreenState extends State<TaskListScreen> {
 
 	@override
 	Widget build(BuildContext context) {
+		final visibleTasks = _tasks.where((task) {
+			final query = _searchQuery.trim().toLowerCase();
+			if (query.isEmpty) {
+				return true;
+			}
+			return task.title.toLowerCase().contains(query);
+		}).toList();
+
 		final taskById = {
 			for (final item in _tasks)
 				if (item.id != null) item.id!: item,
@@ -69,43 +78,68 @@ class _TaskListScreenState extends State<TaskListScreen> {
 			appBar: AppBar(
 				title: const Text('Task Manager'),
 			),
-			body: _tasks.isEmpty
-				? const Center(child: Text('No tasks yet'))
-				: ListView.builder(
-					padding: const EdgeInsets.all(16),
-					itemCount: _tasks.length,
-					itemBuilder: (context, index) {
-						final task = _tasks[index];
-						final blockedByTask = task.blockedBy == null
-							? null
-							: taskById[task.blockedBy];
-						final isBlocked = blockedByTask != null &&
-							blockedByTask.status != TaskStatus.done;
+			body: Column(
+				children: [
+					Padding(
+						padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+						child: TextField(
+							onChanged: (value) {
+								setState(() {
+									_searchQuery = value;
+								});
+							},
+							decoration: const InputDecoration(
+								hintText: 'Search by title',
+								prefixIcon: Icon(Icons.search),
+								border: OutlineInputBorder(),
+							),
+						),
+					),
+					Expanded(
+						child: visibleTasks.isEmpty
+							? Center(
+								child: Text(
+									_tasks.isEmpty ? 'No tasks yet' : 'No tasks found',
+								),
+							)
+							: ListView.builder(
+								padding: const EdgeInsets.all(16),
+								itemCount: visibleTasks.length,
+								itemBuilder: (context, index) {
+									final task = visibleTasks[index];
+									final blockedByTask = task.blockedBy == null
+										? null
+										: taskById[task.blockedBy];
+									final isBlocked = blockedByTask != null &&
+										blockedByTask.status != TaskStatus.done;
 
-						return TaskCard(
-							task: task,
-							isBlocked: isBlocked,
-							onTap: isBlocked
-								? null
-								: () async {
-								final updated = await Navigator.push<bool>(
-									context,
-									MaterialPageRoute(
-										builder: (_) => TaskFormScreen(
-											existingTask: task,
-											availableTasks: _tasks,
-										),
-									),
-								);
+									return TaskCard(
+										task: task,
+										isBlocked: isBlocked,
+										onTap: isBlocked
+											? null
+											: () async {
+											final updated = await Navigator.push<bool>(
+												context,
+												MaterialPageRoute(
+													builder: (_) => TaskFormScreen(
+														existingTask: task,
+														availableTasks: _tasks,
+													),
+												),
+											);
 
-								if (updated == true) {
-									await _loadTasks();
-								}
+											if (updated == true) {
+												await _loadTasks();
+											}
+											},
+										onDelete: isBlocked ? null : () => _confirmAndDeleteTask(task),
+									);
 								},
-							onDelete: isBlocked ? null : () => _confirmAndDeleteTask(task),
-						);
-					},
-				),
+							),
+					),
+				],
+			),
 			floatingActionButton: FloatingActionButton(
 				onPressed: () async {
 					final created = await Navigator.push<bool>(
