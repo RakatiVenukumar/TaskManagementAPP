@@ -28,6 +28,35 @@ class _TaskListScreenState extends State<TaskListScreen> {
 		});
 	}
 
+	Future<void> _confirmAndDeleteTask(Task task) async {
+		final shouldDelete = await showDialog<bool>(
+			context: context,
+			builder: (context) {
+				return AlertDialog(
+					title: const Text('Delete Task'),
+					content: Text('Are you sure you want to delete "${task.title}"?'),
+					actions: [
+						TextButton(
+							onPressed: () => Navigator.pop(context, false),
+							child: const Text('Cancel'),
+						),
+						TextButton(
+							onPressed: () => Navigator.pop(context, true),
+							child: const Text('Delete'),
+						),
+					],
+				);
+			},
+		);
+
+		if (shouldDelete != true) {
+			return;
+		}
+
+		await _databaseHelper.deleteTask(task.id!);
+		await _loadTasks();
+	}
+
 	@override
 	Widget build(BuildContext context) {
 		return Scaffold(
@@ -55,6 +84,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
 									await _loadTasks();
 								}
 							},
+							onDelete: () => _confirmAndDeleteTask(task),
 						);
 					},
 				),

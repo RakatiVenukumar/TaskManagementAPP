@@ -4,10 +4,11 @@ import 'package:task_manager_app/models/task.dart';
 import 'package:task_manager_app/utils/task_status.dart';
 
 class TaskCard extends StatelessWidget {
-	const TaskCard({super.key, required this.task, this.onTap});
+	const TaskCard({super.key, required this.task, this.onTap, this.onDelete});
 
 	final Task task;
 	final VoidCallback? onTap;
+	final VoidCallback? onDelete;
 
 	@override
 	Widget build(BuildContext context) {
@@ -23,9 +24,20 @@ class TaskCard extends StatelessWidget {
 					child: Column(
 						crossAxisAlignment: CrossAxisAlignment.start,
 						children: [
-							Text(
-								task.title,
-								style: Theme.of(context).textTheme.titleMedium,
+							Row(
+								children: [
+									Expanded(
+										child: Text(
+											task.title,
+											style: Theme.of(context).textTheme.titleMedium,
+										),
+									),
+									IconButton(
+										onPressed: onDelete,
+										icon: const Icon(Icons.delete_outline),
+										tooltip: 'Delete task',
+									),
+								],
 							),
 							const SizedBox(height: 8),
 							Row(
