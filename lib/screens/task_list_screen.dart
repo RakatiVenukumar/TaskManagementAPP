@@ -44,13 +44,17 @@ class _TaskListScreenState extends State<TaskListScreen> {
 					},
 				),
 			floatingActionButton: FloatingActionButton(
-				onPressed: () {
-					Navigator.push(
+				onPressed: () async {
+					final created = await Navigator.push<bool>(
 						context,
 						MaterialPageRoute(
 							builder: (_) => const TaskFormScreen(),
 						),
 					);
+
+					if (created == true) {
+						await _loadTasks();
+					}
 				},
 				child: const Icon(Icons.add),
 			),

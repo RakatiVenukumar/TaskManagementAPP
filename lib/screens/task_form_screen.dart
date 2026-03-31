@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:task_manager_app/database/database_helper.dart';
+import 'package:task_manager_app/models/task.dart';
 import 'package:task_manager_app/utils/task_status.dart';
 
 class TaskFormScreen extends StatefulWidget {
@@ -34,7 +36,7 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
 		}
 	}
 
-	void _onSave() {
+	Future<void> _onSave() async {
 		final isFormValid = _formKey.currentState?.validate() ?? false;
 		setState(() {
 			_dueDateError = _selectedDueDate == null ? 'Due date is required' : null;
@@ -44,7 +46,21 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
 			return;
 		}
 
-		// Save logic will be added in later steps.
+		final task = Task(
+			title: _titleController.text.trim(),
+			description: _descriptionController.text.trim(),
+			dueDate: _selectedDueDate!,
+			status: _selectedStatus,
+			blockedBy: null,
+		);
+
+		await DatabaseHelper.instance.insertTask(task);
+
+		if (!mounted) {
+			return;
+		}
+
+		Navigator.pop(context, true);
 	}
 
 	@override
