@@ -69,38 +69,26 @@ class TaskCard extends StatelessWidget {
 			TaskStatus.done => Colors.green.shade700,
 		};
 
-		return Opacity(
-			opacity: isBlocked ? 0.5 : 1,
-			child: TweenAnimationBuilder<double>(
-				tween: Tween<double>(begin: 0.0, end: 1.0),
-				duration: const Duration(milliseconds: 320),
-				curve: Curves.easeOutCubic,
-				builder: (context, value, child) {
-					return Transform.translate(
-						offset: Offset(0, 18 * (1 - value)),
-						child: Opacity(opacity: value, child: child),
-					);
-				},
-				child: AnimatedContainer(
-					duration: animationDelay + const Duration(milliseconds: 150),
-					curve: Curves.easeOut,
-					margin: const EdgeInsets.only(bottom: 14),
-					decoration: BoxDecoration(
-						color: isBlocked ? const Color(0xFFF1F3F2) : Colors.white,
-						borderRadius: BorderRadius.circular(14),
-						boxShadow: const [
-							BoxShadow(
-								color: Color(0x12000000),
-								blurRadius: 12,
-								offset: Offset(0, 4),
-							),
-						],
+		return TweenAnimationBuilder<double>(
+			tween: Tween<double>(begin: 0.0, end: 1.0),
+			duration: const Duration(milliseconds: 220),
+			curve: Curves.easeOut,
+			builder: (context, value, child) {
+				return Opacity(
+					opacity: value * (isBlocked ? 0.6 : 1.0),
+					child: Transform.translate(
+						offset: Offset(0, 12 * (1 - value)),
+						child: child,
 					),
-					child: Material(
-						color: Colors.transparent,
-						child: InkWell(
+				);
+			},
+			child: Card(
+				margin: const EdgeInsets.only(bottom: 14),
+				color: isBlocked ? const Color(0xFFF1F3F2) : Colors.white,
+				shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+				child: InkWell(
 					onTap: onTap,
-					borderRadius: BorderRadius.circular(12),
+					borderRadius: BorderRadius.circular(14),
 					child: Padding(
 						padding: const EdgeInsets.all(16),
 						child: Column(
@@ -109,9 +97,7 @@ class TaskCard extends StatelessWidget {
 								Row(
 									children: [
 										Expanded(
-											child: RichText(
-												text: _buildHighlightedTitle(context),
-											),
+											child: RichText(text: _buildHighlightedTitle(context)),
 										),
 										IconButton(
 											onPressed: onDelete,
@@ -126,9 +112,6 @@ class TaskCard extends StatelessWidget {
 										task.description.trim(),
 										maxLines: 2,
 										overflow: TextOverflow.ellipsis,
-										style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-											color: Colors.black87,
-										),
 									),
 								],
 								const SizedBox(height: 8),
@@ -137,10 +120,7 @@ class TaskCard extends StatelessWidget {
 									runSpacing: 8,
 									children: [
 										Container(
-											padding: const EdgeInsets.symmetric(
-												horizontal: 10,
-												vertical: 5,
-											),
+											padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
 											decoration: BoxDecoration(
 												color: statusColor.withValues(alpha: 0.12),
 												borderRadius: BorderRadius.circular(999),
@@ -159,10 +139,7 @@ class TaskCard extends StatelessWidget {
 										),
 										if (isBlocked)
 											Container(
-												padding: const EdgeInsets.symmetric(
-													horizontal: 10,
-													vertical: 5,
-												),
+												padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
 												decoration: BoxDecoration(
 													color: const Color(0xFFDADFDB),
 													borderRadius: BorderRadius.circular(999),
@@ -186,7 +163,7 @@ class TaskCard extends StatelessWidget {
 										Text(dueDateText),
 									],
 								),
-									],
+							],
 						),
 					),
 				),
