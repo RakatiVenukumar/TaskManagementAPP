@@ -46,11 +46,26 @@ class TaskManagerApp extends StatelessWidget {
 
     return MaterialApp(
       title: 'Task Manager',
+      builder: (context, child) {
+        return DecoratedBox(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Color(0xFFF4FBF8),
+                Color(0xFFE9F2EE),
+              ],
+            ),
+          ),
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: colorScheme,
         textTheme: textTheme,
-        scaffoldBackgroundColor: const Color(0xFFF6F8F7),
+        scaffoldBackgroundColor: Colors.transparent,
         appBarTheme: AppBarTheme(
           centerTitle: false,
           elevation: 0,
