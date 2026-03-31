@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:task_manager_app/database/database_helper.dart';
 import 'package:task_manager_app/models/task.dart';
@@ -14,8 +16,11 @@ class TaskListScreen extends StatefulWidget {
 
 class _TaskListScreenState extends State<TaskListScreen> {
 	final DatabaseHelper _databaseHelper = DatabaseHelper.instance;
+	final TextEditingController _searchController = TextEditingController();
 	List<Task> _tasks = [];
 	String _searchQuery = '';
+	String _debouncedSearchQuery = '';
+	Timer? _searchDebounce;
 	TaskStatus? _selectedStatusFilter;
 
 	@override
@@ -29,6 +34,30 @@ class _TaskListScreenState extends State<TaskListScreen> {
 		setState(() {
 			_tasks = tasks;
 		});
+	}
+
+	void _onSearchChanged(String value) {
+		setState(() {
+			_searchQuery = value;
+		});
+
+		_searchDebounce?.cancel();
+		_searchDebounce = Timer(const Duration(milliseconds: 300), () {
+			if (!mounted) {
+				return;
+			}
+
+			setState(() {
+				_debouncedSearchQuery = _searchQuery;
+			});
+		});
+	}
+
+	@override
+	void dispose() {
+		_searchDebounce?.cancel();
+		_searchController.dispose();
+		super.dispose();
 	}
 
 	Future<void> _confirmAndDeleteTask(Task task) async {
@@ -63,7 +92,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
 	@override
 	Widget build(BuildContext context) {
 		final visibleTasks = _tasks.where((task) {
-			final query = _searchQuery.trim().toLowerCase();
+			final query = _debouncedSearchQuery.trim().toLowerCase();
 			final matchesSearch = query.isEmpty ||
 				task.title.toLowerCase().contains(query);
 			final matchesStatus = _selectedStatusFilter == null ||
@@ -90,11 +119,8 @@ class _TaskListScreenState extends State<TaskListScreen> {
 								Expanded(
 									flex: 3,
 									child: TextField(
-										onChanged: (value) {
-											setState(() {
-												_searchQuery = value;
-											});
-										},
+										controller: _searchController,
+										onChanged: _onSearchChanged,
 										decoration: const InputDecoration(
 											hintText: 'Search by title',
 											prefixIcon: Icon(Icons.search),
@@ -153,6 +179,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
 
 									return TaskCard(
 										task: task,
+										searchQuery: _debouncedSearchQuery,
 										isBlocked: isBlocked,
 										onTap: isBlocked
 											? null
