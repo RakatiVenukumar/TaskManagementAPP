@@ -16,6 +16,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
 	final DatabaseHelper _databaseHelper = DatabaseHelper.instance;
 	List<Task> _tasks = [];
 	String _searchQuery = '';
+	TaskStatus? _selectedStatusFilter;
 
 	@override
 	void initState() {
@@ -63,10 +64,12 @@ class _TaskListScreenState extends State<TaskListScreen> {
 	Widget build(BuildContext context) {
 		final visibleTasks = _tasks.where((task) {
 			final query = _searchQuery.trim().toLowerCase();
-			if (query.isEmpty) {
-				return true;
-			}
-			return task.title.toLowerCase().contains(query);
+			final matchesSearch = query.isEmpty ||
+				task.title.toLowerCase().contains(query);
+			final matchesStatus = _selectedStatusFilter == null ||
+				task.status == _selectedStatusFilter;
+
+			return matchesSearch && matchesStatus;
 		}).toList();
 
 		final taskById = {
@@ -82,17 +85,52 @@ class _TaskListScreenState extends State<TaskListScreen> {
 				children: [
 					Padding(
 						padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-						child: TextField(
-							onChanged: (value) {
-								setState(() {
-									_searchQuery = value;
-								});
-							},
-							decoration: const InputDecoration(
-								hintText: 'Search by title',
-								prefixIcon: Icon(Icons.search),
-								border: OutlineInputBorder(),
-							),
+						child: Row(
+							children: [
+								Expanded(
+									flex: 3,
+									child: TextField(
+										onChanged: (value) {
+											setState(() {
+												_searchQuery = value;
+											});
+										},
+										decoration: const InputDecoration(
+											hintText: 'Search by title',
+											prefixIcon: Icon(Icons.search),
+											border: OutlineInputBorder(),
+										),
+									),
+								),
+								const SizedBox(width: 10),
+								Expanded(
+									flex: 2,
+									child: DropdownButtonFormField<TaskStatus?>(
+										initialValue: _selectedStatusFilter,
+										decoration: const InputDecoration(
+											labelText: 'Status',
+											border: OutlineInputBorder(),
+										),
+										items: [
+											const DropdownMenuItem<TaskStatus?>(
+												value: null,
+												child: Text('All'),
+											),
+											...TaskStatus.values.map((status) {
+												return DropdownMenuItem<TaskStatus?>(
+													value: status,
+													child: Text(status.toDisplayLabel()),
+												);
+											}),
+										],
+										onChanged: (value) {
+											setState(() {
+												_selectedStatusFilter = value;
+											});
+										},
+									),
+								),
+							],
 						),
 					),
 					Expanded(
